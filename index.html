@@ -155,7 +155,7 @@
             color: #fff;
         }
 
-        /* データエリアのホバー */
+        /* データエリア */
         .data-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -199,21 +199,12 @@
             box-shadow: 0 25px 60px rgba(0,0,0,0.4);
         }
 
-        footer {
-            text-align: center;
-            padding: 100px;
-            font-size: 0.8rem;
-            letter-spacing: 0.4em;
-            color: rgba(255,255,255,0.25);
-        }
-
-        @media (max-width: 768px) {
-            .glass-panel { padding: 45px 30px; }
-            .data-grid { grid-template-columns: 1fr; }
-            .scroll-nav { display: none; }
-        }
-
         /* 戻るボタンのスタイル */
+        .back-button-container {
+            text-align: center;
+            margin: 100px 0;
+        }
+
         .back-button {
             display: inline-flex;
             align-items: center;
@@ -263,6 +254,20 @@
 
         .back-button:hover .arrow {
             transform: translateX(5px);
+        }
+
+        footer {
+            text-align: center;
+            padding: 100px;
+            font-size: 0.8rem;
+            letter-spacing: 0.4em;
+            color: rgba(255,255,255,0.25);
+        }
+
+        @media (max-width: 768px) {
+            .glass-panel { padding: 45px 30px; }
+            .data-grid { grid-template-columns: 1fr; }
+            .scroll-nav { display: none; }
         }
     </style>
 </head>
@@ -332,11 +337,11 @@
         <div class="data-grid">
             <div class="data-item">
                 <div class="data-label">本番1回目のズレ（TIME TURNの値）</div>
-                <div class="data-value">235mm <span style="font-size:1.1rem; opacity:0.5; font-weight:normal;">(5350ms)</span></div>
+                <div class="data-value"><span id="count1">0</span>mm <span style="font-size:1.1rem; opacity:0.5; font-weight:normal;">(5350ms)</span></div>
             </div>
             <div class="data-item">
                 <div class="data-label">本番2回目のズレ（TIME TURNの値）</div>
-                <div class="data-value">145mm <span style="font-size:1.1rem; opacity:0.5; font-weight:normal;">(5150ms)</span></div>
+                <div class="data-value"><span id="count2">0</span>mm <span style="font-size:1.1rem; opacity:0.5; font-weight:normal;">(5150ms)</span></div>
             </div>
         </div>
 
@@ -421,15 +426,15 @@ void loop() {
   }
 }</code></pre>
     </section>
-</div>
 
-<div style="text-align: center; margin-top: 100px;">
+    <div class="back-button-container">
         <a href="https://p2cz9zus.github.io/Democar-project/" class="back-button">
             公開用サイトへ戻る
             <span class="arrow">→</span>
         </a>
+    </div>
 </div>
-    
+
 <footer>
     © 創成プロジェクト A1班. All rights reserved.
 </footer>
@@ -439,6 +444,7 @@ void loop() {
 <script>
     hljs.highlightAll();
 
+    // スクロールナビゲーションの制御
     const dots = document.querySelectorAll('.nav-dot');
     const sections = ['hero', 'hansei', 'kaizen', 'kousatsu', 'code'];
     window.addEventListener('scroll', () => {
@@ -452,6 +458,7 @@ void loop() {
         });
     });
 
+    // 背景WebGLアニメーション
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
     const renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('webgl-canvas'), antialias: true, alpha: true });
@@ -485,12 +492,38 @@ void loop() {
         camera.updateProjectionMatrix();
         renderer.setSize(window.innerWidth, window.innerHeight);
     });
+
+    // 【追加】カウントアップ関数
+    function animateNumber(id, target, duration) {
+        const element = document.getElementById(id);
+        let startTimestamp = null;
+        const step = (timestamp) => {
+            if (!startTimestamp) startTimestamp = timestamp;
+            const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+            const current = Math.floor(progress * target);
+            element.innerHTML = current;
+            if (progress < 1) {
+                window.requestAnimationFrame(step);
+            }
+        };
+        window.requestAnimationFrame(step);
+    }
+
+    // 【追加】Intersection Observerによる実行トリガー
+    const observerOptions = { threshold: 0.5 };
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                // 高速カウントアップ (400ms = 0.4秒)
+                animateNumber("count1", 235, 400); 
+                animateNumber("count2", 145, 400);
+                observer.unobserve(entry.target);
+            }
+        });
+    }, observerOptions);
+
+    observer.observe(document.getElementById('kousatsu'));
 </script>
 
 </body>
-
 </html>
-
-
-
-
