@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Democar Project | Analysis Report</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;800&family=JetBrains+Mono:wght@500;700&family=Noto+Sans+JP:wght@400;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/tokyo-night-dark.min.css">
+    <style>
+        :root {
+            --gold: #c5a059;
+            --bg: #030305;
+            --card-bg: rgba(15, 15, 20, 0.85);
+            --text: #e8e8e8;
+            --border: rgba(255, 255, 255, 0.12);
+        }
+
+        body {
+            margin: 0;
+            background-color: var(--bg);
+            color: var(--text);
+            font-family: 'Inter', 'Noto Sans JP', sans-serif;
+            overflow-x: hidden;
+            scroll-behavior: smooth;
+        }
+
+        #webgl-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            z-index: -1;
+            width: 100%;
+            height: 100%;
+        }
+
+        /* スクロールナビ */
+        .scroll-nav {
+            position: fixed;
+            right: 40px;
+            top: 50%;
+            transform: translateY(-50%);
+            z-index: 100;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .nav-dot {
+            width: 7px;
+            height: 7px;
+            border: 1px solid var(--gold);
+            border-radius: 50%;
+            transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
+            cursor: pointer;
+        }
+
+        .nav-dot.active {
+            background: var(--gold);
+            transform: scale(2.2);
+            box-shadow: 0 0 15px var(--gold);
+        }
+
+        .hero {
+            height: 85vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 0 20px;
+        }
+
+        .hero-inner {
+            max-width: 900px;
+        }
+
+        h1 {
+            font-size: clamp(2.2rem, 7vw, 4.2rem);
+            font-weight: 800;
+            line-height: 1.4;
+            letter-spacing: -0.01em;
+            margin: 0;
+            background: linear-gradient(to bottom, #ffffff 50%, #a0a0a0);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            filter: drop-shadow(0 15px 30px rgba(0,0,0,0.5));
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto 150px;
+            padding: 0 20px;
+        }
+
+        .glass-panel {
+            background: var(--card-bg);
+            backdrop-filter: blur(25px);
+            border: 1px solid var(--border);
+            border-radius: 28px;
+            padding: 75px;
+            margin-bottom: 70px;
+            box-shadow: 0 50px 100px rgba(0,0,0,0.7);
+        }
+
+        h2 {
+            font-size: 1.6rem;
+            color: var(--gold);
+            font-weight: 700;
+            margin-bottom: 45px;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        h2::before {
+            content: "";
+            width: 5px;
+            height: 30px;
+            background: var(--gold);
+            border-radius: 3px;
+        }
+
+        .content-text {
+            font-size: 1.25rem;
+            line-height: 2.2;
+            color: rgba(255,255,255,0.9);
+            font-weight: 300;
+        }
+
+        /* 相関関係表のスタイル */
+        .correlation-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 40px 0;
+            font-family: 'JetBrains Mono', monospace;
+            background: rgba(255,255,255,0.02);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .correlation-table th, .correlation-table td {
+            padding: 20px;
+            text-align: center;
+            border: 1px solid var(--border);
+        }
+
+        .correlation-table th {
+            background: rgba(197, 160, 89, 0.1);
+            color: var(--gold);
+            font-size: 0.9rem;
+            letter-spacing: 0.1em;
+        }
+
+        .correlation-table tr:hover td {
+            background: rgba(197, 160, 89, 0.05);
+            color: #fff;
+        }
+
+        /* データエリアのホバー */
+        .data-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 25px;
+            margin: 50px 0;
+        }
+
+        .data-item {
+            background: rgba(255,255,255,0.025);
+            border: 1px solid var(--border);
+            padding: 45px;
+            border-radius: 20px;
+            text-align: center;
+            transition: all 0.6s cubic-bezier(0.165, 0.84, 0.44, 1);
+        }
+
+        .data-item:hover {
+            transform: translateY(-12px);
+            background: rgba(197, 160, 89, 0.08);
+            border-color: var(--gold);
+            box-shadow: 0 25px 50px rgba(0,0,0,0.5);
+        }
+
+        .data-label { color: var(--gold); font-size: 0.85rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 15px; }
+        .data-value { font-size: 2.3rem; font-family: 'JetBrains Mono'; font-weight: 700; color: #ffffff; }
+
+        .highlight-prediction {
+            border-left: 4px solid var(--gold);
+            background: linear-gradient(90deg, rgba(197, 160, 89, 0.05) 0%, transparent 100%);
+            padding: 40px 50px;
+            border-radius: 0 20px 20px 0;
+            margin: 50px 0;
+        }
+
+        pre {
+            margin-top: 50px;
+            border-radius: 16px;
+            overflow: hidden;
+            font-size: 1rem;
+            border: 1px solid var(--border);
+            box-shadow: 0 25px 60px rgba(0,0,0,0.4);
+        }
+
+        footer {
+            text-align: center;
+            padding: 100px;
+            font-size: 0.8rem;
+            letter-spacing: 0.4em;
+            color: rgba(255,255,255,0.25);
+        }
+
+        @media (max-width: 768px) {
+            .glass-panel { padding: 45px 30px; }
+            .data-grid { grid-template-columns: 1fr; }
+            .scroll-nav { display: none; }
+        }
+    </style>
+</head>
+<body>
+
+<canvas id="webgl-canvas"></canvas>
+
+<nav class="scroll-nav">
+    <div class="nav-dot" onclick="document.getElementById('hero').scrollIntoView()"></div>
+    <div class="nav-dot" onclick="document.getElementById('hansei').scrollIntoView()"></div>
+    <div class="nav-dot" onclick="document.getElementById('kaizen').scrollIntoView()"></div>
+    <div class="nav-dot" onclick="document.getElementById('kousatsu').scrollIntoView()"></div>
+    <div class="nav-dot" onclick="document.getElementById('code').scrollIntoView()"></div>
+</nav>
+
+<div class="hero" id="hero">
+    <div class="hero-inner">
+        <h1>車体走行テストの<br>改善案と考察</h1>
+    </div>
+</div>
+
+<div class="container">
+    <section class="glass-panel" id="hansei">
+        <h2>反省点</h2>
+        <div class="content-text">
+            ・ 返ってくる位置のズレとUターン時間（コード内のTIME TURNの値）の相関関係を表にしておき，1回目のずれを参考に微調整を加えたうえで，2回目の走行に挑むべきだった．
+        </div>
+        
+        <table class="correlation-table">
+            <thead>
+                <tr>
+                    <th>TIME TURNの値 (ms)</th>
+                    <th>位置のズレ (mm)</th>
+                    <th>備考</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>5350</td>
+                    <td>235</td>
+                    <td>1回目走行結果</td>
+                </tr>
+                <tr>
+                    <td>5150</td>
+                    <td>145</td>
+                    <td>2回目走行結果</td>
+                </tr>
+                <tr style="border-top: 2px solid var(--gold);">
+                    <td style="color: var(--gold);">4827</td>
+                    <td style="color: var(--gold);">0</td>
+                    <td style="color: var(--gold);">理論上の最適値</td>
+                </tr>
+            </tbody>
+        </table>
+    </section>
+
+    <section class="glass-panel" id="kaizen">
+        <h2>具体的な改善策</h2>
+        <div class="content-text">
+            <p>・ 事前にTIME TURNの値を変えた場合のズレの変化を表や図にしてまとめておく．</p>
+            <p>・ 1回目の本番走行で，車体が返ってくる位置のズレに基づき，2回目直前に数値を微調整する．</p>
+        </div>
+    </section>
+
+    <section class="glass-panel" id="kousatsu">
+        <h2>考察</h2>
+        <div class="data-grid">
+            <div class="data-item">
+                <div class="data-label">本番1回目のズレ（TIME TURNの値）</div>
+                <div class="data-value">235mm <span style="font-size:1.1rem; opacity:0.5; font-weight:normal;">(5350ms)</span></div>
+            </div>
+            <div class="data-item">
+                <div class="data-label">本番2回目のズレ（TIME TURNの値）</div>
+                <div class="data-value">145mm <span style="font-size:1.1rem; opacity:0.5; font-weight:normal;">(5150ms)</span></div>
+            </div>
+        </div>
+
+        <div class="highlight-prediction">
+            <div class="content-text" style="font-weight: 700; color: #fff; font-size: 1.4rem;">
+                ・ TIME TURNの値を200msだけ短縮させることで，ズレが90mm改善したことから，TIME TURNを4827㎳にすることで，ズレが0となる位置に帰ってこれたと考える．
+            </div>
+        </div>
+
+        <div class="content-text">
+            ただし，板の歪みが車体の返ってくる位置のズレに大きく影響していることは否めない．理想としては，物理的な路面形状に強い車体構造，又はセンサーによる角度補正の導入についても検討するべきだったと考える．
+        </div>
+    </section>
+
+    <section class="glass-panel" id="code">
+        <h2>今回使用したコード</h2>
+        <pre><code class="language-cpp">#include &lt;Arduino.h&gt;
+#include &lt;Servo.h&gt;
+
+// ① ピン設定
+const int PIN_MOTOR_PWM = 5;
+const int PIN_MOTOR_DIR = 7;
+const int PIN_SERVO     = 9;
+const int PIN_SENSOR    = 2;
+
+// ② 動きの設定
+const int SPEED          = 255;
+const int ANGLE_STRAIGHT = 88; 
+const int ANGLE_TURN     = 45;
+
+// ③ 時間の設定（Uターンだけは角度制御のために時間を使用）
+const int TIME_TURN      = 5350; 
+
+Servo myServo;
+int stage = -1; 
+
+void motorOn()  { analogWrite(PIN_MOTOR_PWM, SPEED); digitalWrite(PIN_MOTOR_DIR, LOW); }
+void motorOff() { analogWrite(PIN_MOTOR_PWM, 0); digitalWrite(PIN_MOTOR_DIR, LOW); }
+
+void setup() {
+  pinMode(PIN_MOTOR_PWM, OUTPUT);
+  pinMode(PIN_MOTOR_DIR, OUTPUT);
+  pinMode(PIN_SENSOR, INPUT_PULLUP);
+  myServo.attach(PIN_SERVO);
+
+  motorOff();
+  myServo.write(ANGLE_STRAIGHT); 
+  delay(1000); 
+}
+
+void loop() {
+  if (stage == -1) {
+    if (digitalRead(PIN_SENSOR) == LOW) {
+      delay(500); 
+      stage = 0;
+    }
+  }
+  else if (stage == 0) {
+    myServo.write(ANGLE_STRAIGHT);
+    motorOn();
+    while(digitalRead(PIN_SENSOR) == LOW) {
+      delay(10); 
+    }
+    motorOff();
+    delay(1000);
+    stage = 1;
+  }
+  else if (stage == 1) {
+    if (digitalRead(PIN_SENSOR) == LOW) {
+      delay(500);
+      myServo.write(ANGLE_TURN);
+      motorOn();
+      delay(TIME_TURN);
+      myServo.write(ANGLE_STRAIGHT);
+      while(digitalRead(PIN_SENSOR) == LOW) {
+        delay(10);
+      }
+      motorOff();
+      delay(1000);
+      stage = -1;
+    }
+  }
+}</code></pre>
+    </section>
+</div>
+
+<footer>
+    © 創成プロジェクト A1班. All rights reserved.
+</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+<script>
+    hljs.highlightAll();
+
+    const dots = document.querySelectorAll('.nav-dot');
+    const sections = ['hero', 'hansei', 'kaizen', 'kousatsu', 'code'];
+    window.addEventListener('scroll', () => {
+        let current = "";
+        sections.forEach(id => {
+            const el = document.getElementById(id);
+            if (window.pageYOffset >= el.offsetTop - 450) current = id;
+        });
+        dots.forEach((dot, i) => {
+            dot.classList.toggle('active', sections[i] === current);
+        });
+    });
+
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
+    const renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('webgl-canvas'), antialias: true, alpha: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(window.devicePixelRatio);
+
+    const geo = new THREE.PlaneGeometry(120, 120, 50, 50);
+    const mat = new THREE.MeshBasicMaterial({ color: 0xc5a059, wireframe: true, transparent: true, opacity: 0.15 });
+    const grid = new THREE.Mesh(geo, mat);
+    grid.rotation.x = -Math.PI / 2.3;
+    scene.add(grid);
+    camera.position.set(0, 4, 8);
+
+    function animate() {
+        requestAnimationFrame(animate);
+        const time = Date.now() * 0.0003;
+        const pos = grid.geometry.attributes.position;
+        for (let i = 0; i < pos.count; i++) {
+            const x = pos.getX(i);
+            const y = pos.getY(i);
+            const z = Math.sin(x * 0.18 + time) * Math.cos(y * 0.18 + time) * 2.2;
+            pos.setZ(i, z);
+        }
+        pos.needsUpdate = true;
+        renderer.render(scene, camera);
+    }
+    animate();
+
+    window.addEventListener('resize', () => {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+</script>
+
+</body>
+</html>
