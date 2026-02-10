@@ -510,7 +510,7 @@ void loop() {
     }
 
     // 【追加】Intersection Observerによる実行トリガー
-    const observerOptions = { threshold: 0.5 };
+    const observerOptions = { threshold: 0.1 };
     const observer = new IntersectionObserver((entries) => {
         entries.forEach(entry => {
             if (entry.isIntersecting) {
@@ -527,3 +527,4 @@ void loop() {
 
 </body>
 </html>
+
